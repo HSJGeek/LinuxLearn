@@ -1,0 +1,74 @@
+#!/bin/bash
+#author:geek_huang
+#desc:Delete files created more than 7 days ago
+#time：2024/05/23
+
+
+#获取要操作目录
+echo -e "------------------\e[34m输入要检查的目录\e[0m------------------"
+echo -e "----------------\e[35m若已携带参数回车跳过\e[0m----------------"
+echo -e "-------------------\e[92m倒计时20s\e[0m------------------------"
+read -t 20 WHEREDIR
+
+
+
+#判断是否携带参数，或在输入目录是否正确。
+if [  -z "$WHEREDIR"  ]; then
+    if [ -n "$1" ]; then
+         WHEREDIR=$1
+    else
+    	echo -e  "-------------------\e[5m\e[31m未携带目录\e[0m-----------------------"
+    	exit 
+    fi
+    
+     WHEREDIR=$1
+#判断目录是否存在，不存在重新输入
+elif [ -e $WHEREDIR ]; then
+    echo -e "-------------\e[32m输入目录正确程序执行\e[0m------------------"
+     
+else
+    echo -e "---------\e[5m\e[31m输入目录不存在\e[0m请检查后再次输入----------"
+fi
+
+
+
+
+declare -A  file_Time
+
+nowTime=$(date +%s)
+
+#创建数组存储目录下文件
+totalFile=$(ls -l $WHEREDIR |awk '{if(NR>1) {print $NF}}')
+
+
+for i in  ${totalFile[*]} ;
+do
+
+#获取文件创建时间
+file_Touch_time=$(stat $WHEREDIR$i | awk -F '[ .]' 'NR==6 {print $2" "$3}')
+
+#将创建时间转换为秒
+oldtime=$(date -d "$file_Touch_time" +%s)
+
+file_Time["$i"]=$oldtime
+
+done
+
+
+Delete_Time_Limit=604800
+
+dayNUM=$(expr "$Delete_Time_Limit" / "86400") 
+#遍历关联数组
+for item in ${!file_Time[*]};
+do
+      result=$(expr "$nowTime" - "${file_Time[$item]}")
+
+      if [ $result -gt $Delete_Time_Limit ]; 
+      then
+       echo -e "<======>\e[32m$WHEREDIR$item\e[0m\e[31m\e[5m时间大于7天文件被删除\e[0m<======>"
+       rm -rf  $WHEREDIR$item
+      fi
+
+done
+echo -e "--------\e[34m执行完毕: $WHEREDIR目录下无大于$dayNUM天\e[0m-----------"
+
